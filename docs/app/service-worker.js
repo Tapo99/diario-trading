@@ -1,9 +1,11 @@
 // ============================================================
-// Cachea el shell de la app para que funcione sin internet
-// despues de la primera carga. El check de codigo de activacion
-// sigue necesitando red la primera vez (no se cachea esa llamada).
+// Cachea el shell de la app para que funcione sin internet.
+// Estrategia: red primero, cache como respaldo solo si no hay
+// conexion. Asi, cuando el dispositivo tiene internet (el caso
+// normal), siempre se usa la version mas nueva de inmediato en
+// vez de esperar a que el service worker viejo se actualice solo.
 // ============================================================
-const CACHE_NAME = "diario-trading-v19";
+const CACHE_NAME = "diario-trading-v20";
 const APP_SHELL = [
   "./",
   "./index.html",
@@ -45,18 +47,19 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
+  if (event.request.method !== "GET") {
+    return;
+  }
+
   event.respondWith(
-    caches.match(event.request).then((cached) => {
-      if (cached) return cached;
-      return fetch(event.request)
-        .then((response) => {
-          if (response.ok && event.request.method === "GET") {
-            const clone = response.clone();
-            caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
-          }
-          return response;
-        })
-        .catch(() => caches.match("./index.html"));
-    })
+    fetch(event.request)
+      .then((response) => {
+        if (response.ok) {
+          const clone = response.clone();
+          caches.open(CACHE_NAME).then((cache) => cache.put(event.request, clone));
+        }
+        return response;
+      })
+      .catch(() => caches.match(event.request).then((cached) => cached || caches.match("./index.html")))
   );
 });
