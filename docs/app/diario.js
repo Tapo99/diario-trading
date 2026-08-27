@@ -213,7 +213,9 @@
       exportBtn.innerHTML = "&#128196;";
       exportBtn.addEventListener("click", (e) => {
         e.stopPropagation();
-        exportTradePdf(trade);
+        exportTradePdf(trade).catch((err) => {
+          alert("No se pudo generar el PDF: " + err.message);
+        });
       });
       actions.appendChild(exportBtn);
 
@@ -387,7 +389,7 @@
     const overlay = document.createElement("div");
     overlay.id = "print-preview-overlay";
     overlay.style.cssText =
-      "position:fixed;inset:0;background:#ffffff;color:#111111;z-index:1000;overflow-y:auto;-webkit-print-color-adjust:exact;print-color-adjust:exact;";
+      "background:#ffffff;color:#111111;-webkit-print-color-adjust:exact;print-color-adjust:exact;";
     overlay.innerHTML = `
       <div class="print-preview-toolbar">
         <span>Vista previa de impresion</span>

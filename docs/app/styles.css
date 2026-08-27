@@ -994,8 +994,8 @@ button {
   }
 
   #print-preview-overlay {
-    position: static;
-    overflow: visible;
+    position: static !important;
+    overflow: visible !important;
     background: #fff !important;
     min-height: 0;
   }
