@@ -155,6 +155,41 @@ button {
   white-space: nowrap;
 }
 
+.app-menu-toggle {
+  display: none;
+  background: none;
+  border: none;
+  color: var(--text-main);
+  font-size: 26px;
+  line-height: 1;
+  cursor: pointer;
+  padding: 6px 10px;
+  border-radius: 8px;
+  flex-shrink: 0;
+}
+
+.app-menu-toggle:hover {
+  background: #1c2740;
+}
+
+.btn-install-app {
+  flex-shrink: 0;
+  margin-left: auto;
+  background: linear-gradient(135deg, var(--accent-1), var(--accent-2));
+  color: #fff;
+  border: none;
+  border-radius: 999px;
+  padding: 8px 16px;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.btn-install-app:hover {
+  opacity: 0.9;
+}
+
 .app-brand {
   display: flex;
   align-items: center;
@@ -200,6 +235,57 @@ button {
 .tab-btn-active {
   color: var(--text-main);
   border-bottom-color: var(--accent-2);
+}
+
+@media (max-width: 640px) {
+  .app-header {
+    justify-content: space-between;
+    position: relative;
+  }
+
+  .app-menu-toggle {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .app-tabs {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0;
+    background: var(--card);
+    border-bottom: 1px solid #1c2740;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.3);
+    padding: 4px 16px 8px;
+  }
+
+  .app-tabs.app-tabs-open {
+    display: flex;
+  }
+
+  .app-tabs .tab-btn {
+    text-align: left;
+    width: 100%;
+    padding: 14px 4px;
+    font-size: 14px;
+    border-bottom: 1px solid #1c2740;
+    border-left: 3px solid transparent;
+  }
+
+  .app-tabs .tab-btn:last-child {
+    border-bottom: none;
+  }
+
+  .app-tabs .tab-btn-active {
+    border-bottom-color: #1c2740;
+    border-left-color: var(--accent-2);
+    padding-left: 10px;
+  }
 }
 
 .tab-panel {
