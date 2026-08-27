@@ -335,24 +335,24 @@
     const montoText = trade.monto ? "$" + Number(trade.monto).toFixed(2) : "";
     const badgeHtml = `<span style="display:inline-block;background:${color};color:#fff;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:bold;">${resultadoLabel}</span>`;
     const montoHtml = montoText
-      ? `<div style="margin:8px 0 16px;font-size:16px;font-weight:bold;">${montoText}</div>`
+      ? `<div style="margin:8px 0 16px;font-size:16px;font-weight:bold;color:#111;">${montoText}</div>`
       : "";
 
     const questionsHtml = QUESTION_LABELS.map(([key, label]) => {
       const value = (trade.respuestas && trade.respuestas[key]) || "-";
       const inlineDetail =
         key === "resultado"
-          ? `<div style="margin:4px 0 6px;">${badgeHtml}${montoText ? ` <span style="font-weight:bold;">${montoText}</span>` : ""}</div>`
+          ? `<div style="margin:4px 0 6px;">${badgeHtml}${montoText ? ` <span style="font-weight:bold;color:#111;">${montoText}</span>` : ""}</div>`
           : "";
-      return `<div style="margin-bottom:14px;"><h3 style="margin:0 0 4px;font-size:14px;color:#0f766e;">${label}</h3>${inlineDetail}<p style="margin:0;white-space:pre-wrap;">${escapeHtml(value)}</p></div>`;
+      return `<div style="margin-bottom:14px;"><h3 style="margin:0 0 4px;font-size:14px;color:#0f766e;">${label}</h3>${inlineDetail}<p style="margin:0;white-space:pre-wrap;color:#111;">${escapeHtml(value)}</p></div>`;
     }).join("");
 
     const heading = showDateAsHeading
-      ? `<div class="meta">${formatDateHeader(trade.fecha)} — ${formatTime(trade.createdAt)}</div>`
+      ? `<div class="meta" style="color:#555;">${formatDateHeader(trade.fecha)} — ${formatTime(trade.createdAt)}</div>`
       : "";
 
     return `
-      <div class="trade-block">
+      <div class="trade-block" style="background:#fff;color:#111;">
         ${heading}
         <div style="margin-bottom:16px;">${badgeHtml}</div>
         ${montoHtml}
@@ -372,7 +372,7 @@
   .print-doc .meta { color: #555; margin-bottom: 8px; }
   .print-doc .trade-block { break-inside: avoid; }
 </style>
-<div class="print-doc">
+<div class="print-doc" style="background:#fff;color:#111;">
   <h1>Diario de Trading</h1>
   ${tradeHtml}
 </div>`;
@@ -386,12 +386,14 @@
 
     const overlay = document.createElement("div");
     overlay.id = "print-preview-overlay";
+    overlay.style.cssText =
+      "position:fixed;inset:0;background:#ffffff;color:#111111;z-index:1000;overflow-y:auto;-webkit-print-color-adjust:exact;print-color-adjust:exact;";
     overlay.innerHTML = `
       <div class="print-preview-toolbar">
         <span>Vista previa de impresion</span>
         <button type="button" class="btn btn-secondary" id="print-preview-close">Cerrar</button>
       </div>
-      <div class="print-preview-content">${contentHtml}</div>
+      <div class="print-preview-content" style="background:#ffffff;color:#111111;">${contentHtml}</div>
     `;
     document.body.appendChild(overlay);
 
@@ -594,7 +596,7 @@
       dayBlocks.push(`
         <div style="margin-top:28px;">
           <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0f766e;padding-bottom:4px;margin-bottom:14px;">
-            <h2 style="margin:0;font-size:16px;">${formatDateHeader(day)}</h2>
+            <h2 style="margin:0;font-size:16px;color:#111;">${formatDateHeader(day)}</h2>
             <span style="font-size:13px;color:${dayData.neto >= 0 ? "#16a34a" : "#dc2626"};font-weight:bold;">Neto del dia: ${formatMoney(dayData.neto)}</span>
           </div>
           ${tradeBlocks.join('<hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />')}
@@ -615,7 +617,7 @@
   .print-doc .summary-value { font-size: 18px; font-weight: bold; margin-top: 2px; }
   .print-doc .trade-block { break-inside: avoid; margin-bottom: 12px; }
 </style>
-<div class="print-doc">
+<div class="print-doc" style="background:#fff;color:#111;">
   <h1>Diario de Trading — Reporte por fechas</h1>
   <div class="meta">${formatDateHeader(from)} al ${formatDateHeader(to)}</div>
 
@@ -623,8 +625,8 @@
     <div class="summary-card"><span class="summary-label">Ganancias</span><span class="summary-value" style="color:#16a34a;">${formatMoney(totalGanancias)}</span></div>
     <div class="summary-card"><span class="summary-label">Perdidas</span><span class="summary-value" style="color:#dc2626;">${formatMoney(totalPerdidas)}</span></div>
     <div class="summary-card"><span class="summary-label">Neto</span><span class="summary-value" style="color:${netoGeneral >= 0 ? "#16a34a" : "#dc2626"};">${formatMoney(netoGeneral)}</span></div>
-    <div class="summary-card"><span class="summary-label">% Aciertos</span><span class="summary-value">${winRate}%</span></div>
-    <div class="summary-card"><span class="summary-label">Trades</span><span class="summary-value">${totalTrades}</span></div>
+    <div class="summary-card"><span class="summary-label">% Aciertos</span><span class="summary-value" style="color:#111;">${winRate}%</span></div>
+    <div class="summary-card"><span class="summary-label">Trades</span><span class="summary-value" style="color:#111;">${totalTrades}</span></div>
   </div>
 
   ${chartSvg}
