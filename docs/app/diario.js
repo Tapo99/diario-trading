@@ -584,7 +584,8 @@
     const chartSvg = buildDailyBarChartSvg(dailyTotals);
 
     const dayBlocks = [];
-    for (const day of sortedDays) {
+    const daysDescending = [...sortedDays].reverse();
+    for (const day of daysDescending) {
       const dayData = dailyTotals.get(day);
       const tradeBlocks = [];
       for (const t of byDate.get(day)) {

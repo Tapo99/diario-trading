@@ -3,7 +3,7 @@
 // despues de la primera carga. El check de codigo de activacion
 // sigue necesitando red la primera vez (no se cachea esa llamada).
 // ============================================================
-const CACHE_NAME = "diario-trading-v17";
+const CACHE_NAME = "diario-trading-v18";
 const APP_SHELL = [
   "./",
   "./index.html",
