@@ -91,6 +91,18 @@
       banner.className = "edit-banner";
       const label = document.createElement("span");
       label.textContent = "Editando un trade guardado";
+
+      const linkRow = document.createElement("div");
+      linkRow.className = "edit-banner-links";
+
+      const saveLink = document.createElement("button");
+      saveLink.type = "button";
+      saveLink.className = "edit-save-link";
+      saveLink.textContent = "Guardar edicion";
+      saveLink.addEventListener("click", async () => {
+        await saveTrade();
+      });
+
       const cancelLink = document.createElement("button");
       cancelLink.type = "button";
       cancelLink.className = "edit-cancel-link";
@@ -102,8 +114,11 @@
         render();
         window.dispatchEvent(new CustomEvent("app:navigate", { detail: { tab: "diario" } }));
       });
+
+      linkRow.appendChild(saveLink);
+      linkRow.appendChild(cancelLink);
       banner.appendChild(label);
-      banner.appendChild(cancelLink);
+      banner.appendChild(linkRow);
       root.appendChild(banner);
     }
 

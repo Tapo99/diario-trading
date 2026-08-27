@@ -833,11 +833,27 @@ button {
   color: var(--text-main);
 }
 
+.edit-banner-links {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+}
+
 .edit-cancel-link {
   background: none;
   border: none;
-  color: var(--accent-2);
+  color: var(--text-sec);
   font-weight: 600;
+  font-size: 13px;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.edit-save-link {
+  background: none;
+  border: none;
+  color: var(--accent-2);
+  font-weight: 700;
   font-size: 13px;
   cursor: pointer;
   text-decoration: underline;
@@ -968,6 +984,11 @@ button {
 }
 
 @media print {
+  html,
+  body {
+    background: #fff !important;
+  }
+
   body > *:not(#print-preview-overlay) {
     display: none !important;
   }
@@ -975,6 +996,8 @@ button {
   #print-preview-overlay {
     position: static;
     overflow: visible;
+    background: #fff !important;
+    min-height: 0;
   }
 
   .print-preview-toolbar {
