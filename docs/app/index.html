@@ -1,0 +1,94 @@
+<!doctype html>
+<html lang="es">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Diario de Trading</title>
+  <meta name="theme-color" content="#0f766e" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="icon" href="icons/icon-192.png" />
+  <link rel="apple-touch-icon" href="icons/icon-192.png" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+  <!-- Pantalla de activacion -->
+  <section id="screen-activation" hidden>
+    <div class="activation-box">
+      <h1>Diario de Trading</h1>
+      <p class="subtitle">Escribe tu codigo de activacion de 6 digitos.</p>
+
+      <form id="activation-form">
+        <div class="code-digits">
+          <input class="code-digit" type="text" inputmode="numeric" maxlength="1" />
+          <input class="code-digit" type="text" inputmode="numeric" maxlength="1" />
+          <input class="code-digit" type="text" inputmode="numeric" maxlength="1" />
+          <input class="code-digit" type="text" inputmode="numeric" maxlength="1" />
+          <input class="code-digit" type="text" inputmode="numeric" maxlength="1" />
+          <input class="code-digit" type="text" inputmode="numeric" maxlength="1" />
+        </div>
+        <button id="activation-submit" type="submit" class="btn btn-primary" disabled>Activar</button>
+        <p id="activation-error" class="activation-error" hidden></p>
+      </form>
+
+      <p class="activation-footer">
+        <span id="activation-contacto-text"></span><br />
+        <a id="activation-whatsapp" href="#" target="_blank" rel="noopener">+503 7228 9451</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- App principal -->
+  <section id="screen-app" hidden>
+    <header class="app-header">
+      <div class="app-brand">
+        <img src="icons/logo.png" alt="Diario de Trading" class="app-brand-logo" />
+        <span class="app-brand-title">Diario de Trading</span>
+      </div>
+      <nav class="app-tabs">
+        <button class="tab-btn tab-btn-active" data-tab="agregar">Agregar nuevo trading</button>
+        <button class="tab-btn" data-tab="diario">Diario</button>
+        <button class="tab-btn" data-tab="estadistica">Estadistica</button>
+        <button class="tab-btn" data-tab="info">Informacion</button>
+      </nav>
+    </header>
+
+    <div class="tab-panel" data-tab-panel="agregar">
+      <div id="wizard-root"></div>
+    </div>
+
+    <div class="tab-panel" data-tab-panel="diario" hidden>
+      <div id="diario-root"></div>
+    </div>
+
+    <div class="tab-panel" data-tab-panel="estadistica" hidden>
+      <div id="stats-root"></div>
+    </div>
+
+    <div class="tab-panel" data-tab-panel="info" hidden>
+      <div class="info-card">
+        <h2>Sobre tu codigo de activacion</h2>
+        <ul class="info-list">
+          <li>Tu codigo de activacion funciona en <strong>un solo dispositivo</strong>. Una vez usado, queda amarrado a ese dispositivo y no se puede activar en otro.</li>
+          <li>Si quieres usar la app en un <strong>dispositivo adicional</strong> (por ejemplo, ademas de tu celular tambien en tu PC), necesitas un codigo nuevo y se cobra como una instalacion aparte.</li>
+          <li>Si <strong>cambias de dispositivo</strong> (se te daño, lo cambiaste, formateaste, etc.), tu codigo se puede reemplazar <strong>una vez sin costo adicional</strong> escribiendo al WhatsApp de soporte.</li>
+          <li>Si necesitas un <strong>segundo cambio de dispositivo</strong>, ese ya se cobra de nuevo como una nueva activacion.</li>
+        </ul>
+        <p class="info-contact">
+          Para pedir un codigo nuevo o un cambio de dispositivo, escribe al WhatsApp:
+          <br />
+          <a id="info-whatsapp" href="#" target="_blank" rel="noopener">+503 7228 9451</a>
+        </p>
+      </div>
+    </div>
+  </section>
+
+  <script src="config.js"></script>
+  <script src="db.js"></script>
+  <script src="activation.js"></script>
+  <script src="wizard.js"></script>
+  <script src="diario.js"></script>
+  <script src="stats.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>

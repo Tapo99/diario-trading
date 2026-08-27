@@ -1,0 +1,352 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Panel de Codigos - Diario de Trading</title>
+<style>
+  :root {
+    --bg: #f8fafc;
+    --card: #ffffff;
+    --accent: #0f766e;
+    --accent-dark: #0b5c55;
+    --text-main: #0f172a;
+    --text-sec: #64748b;
+    --border: #e2e8f0;
+    --danger: #dc2626;
+    --success: #16a34a;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif;
+    background: var(--bg);
+    color: var(--text-main);
+    padding: 24px;
+  }
+  h1 { font-size: 22px; margin-bottom: 4px; }
+  .subtitle { color: var(--text-sec); margin-bottom: 24px; font-size: 14px; }
+  .card {
+    background: var(--card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 20px;
+    margin-bottom: 20px;
+    max-width: 900px;
+  }
+  .card h2 { font-size: 16px; margin-top: 0; }
+  label { display: block; font-size: 13px; color: var(--text-sec); margin-bottom: 6px; margin-top: 14px; }
+  input[type="text"], input[type="password"] {
+    width: 100%;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    font-size: 14px;
+  }
+  .row { display: flex; gap: 16px; flex-wrap: wrap; }
+  .row > div { flex: 1; min-width: 220px; }
+  .btn {
+    border: none;
+    border-radius: 8px;
+    padding: 10px 18px;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+    color: #fff;
+    background: var(--accent);
+  }
+  .btn:hover { background: var(--accent-dark); }
+  .btn-secondary {
+    background: #fff;
+    color: var(--text-main);
+    border: 1px solid var(--border);
+  }
+  .btn-danger { background: var(--danger); }
+  .switch-row { display: flex; align-items: center; gap: 10px; margin-top: 14px; }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 13px;
+    margin-top: 12px;
+  }
+  th, td {
+    text-align: left;
+    padding: 8px 10px;
+    border-bottom: 1px solid var(--border);
+    white-space: nowrap;
+  }
+  th { color: var(--text-sec); font-weight: 600; }
+  .badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    font-size: 11px;
+    font-weight: 700;
+  }
+  .badge-activo { background: rgba(22,163,74,0.15); color: var(--success); }
+  .badge-inactivo { background: rgba(220,38,38,0.15); color: var(--danger); }
+  .msg { font-size: 13px; margin-top: 10px; min-height: 18px; }
+  .msg-error { color: var(--danger); }
+  .msg-ok { color: var(--success); }
+  .actions-cell { display: flex; gap: 6px; }
+  .actions-cell button {
+    font-size: 12px;
+    padding: 6px 10px;
+  }
+  .table-wrap { overflow-x: auto; }
+</style>
+</head>
+<body>
+
+<h1>Panel de Codigos</h1>
+<p class="subtitle">Diario de Trading — uso privado, no publicar en el hosting junto con /app y /landing.</p>
+
+<div class="card">
+  <h2>Conexion</h2>
+  <div class="row">
+    <div>
+      <label for="cfg-url">URL del Apps Script (…/exec)</label>
+      <input type="text" id="cfg-url" placeholder="https://script.google.com/macros/s/XXXX/exec" />
+    </div>
+    <div>
+      <label for="cfg-key">Admin Key</label>
+      <input type="password" id="cfg-key" placeholder="clave de administrador" />
+    </div>
+  </div>
+  <button class="btn" id="btn-save-cfg" style="margin-top:16px;">Guardar conexion</button>
+  <p class="msg" id="cfg-msg"></p>
+</div>
+
+<div class="card">
+  <h2>Generar codigo nuevo</h2>
+  <div class="row">
+    <div>
+      <label for="new-tipo">Tipo</label>
+      <input type="text" id="new-tipo" value="pagado" />
+    </div>
+    <div>
+      <label for="new-nota">Nota (opcional)</label>
+      <input type="text" id="new-nota" placeholder="ej: enviado por correo el 25/08" />
+    </div>
+  </div>
+  <div class="switch-row">
+    <input type="checkbox" id="new-activar" checked />
+    <label for="new-activar" style="margin:0;">Activar de inmediato</label>
+  </div>
+  <button class="btn" id="btn-generar" style="margin-top:16px;">Generar codigo nuevo</button>
+  <p class="msg" id="generar-msg"></p>
+</div>
+
+<div class="card">
+  <h2>Generar los 50 codigos gratis iniciales</h2>
+  <p style="font-size:13px;color:var(--text-sec);">
+    Crea 50 codigos con tipo "gratis" y estado "activo" desde el inicio. Usalo UNA sola vez.
+  </p>
+  <button class="btn btn-danger" id="btn-lote">Generar 50 codigos gratis</button>
+  <p class="msg" id="lote-msg"></p>
+</div>
+
+<div class="card" style="max-width: none;">
+  <h2>Lista de codigos</h2>
+  <button class="btn btn-secondary" id="btn-refrescar">Actualizar lista</button>
+  <p class="msg" id="lista-msg"></p>
+  <div class="table-wrap">
+    <table id="tabla-codigos">
+      <thead>
+        <tr>
+          <th>Codigo</th>
+          <th>Tipo</th>
+          <th>Estado</th>
+          <th>Device ID</th>
+          <th>Creado</th>
+          <th>Nota</th>
+          <th>Acciones</th>
+        </tr>
+      </thead>
+      <tbody id="tabla-body"></tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+(function () {
+  const $ = (sel) => document.querySelector(sel);
+  const LS_URL = "panel_apps_script_url";
+  const LS_KEY = "panel_admin_key";
+
+  function getCfg() {
+    return { url: localStorage.getItem(LS_URL) || "", key: localStorage.getItem(LS_KEY) || "" };
+  }
+
+  function loadCfgIntoForm() {
+    const cfg = getCfg();
+    $("#cfg-url").value = cfg.url;
+    $("#cfg-key").value = cfg.key;
+  }
+
+  $("#btn-save-cfg").addEventListener("click", () => {
+    localStorage.setItem(LS_URL, $("#cfg-url").value.trim());
+    localStorage.setItem(LS_KEY, $("#cfg-key").value.trim());
+    $("#cfg-msg").textContent = "Conexion guardada en este navegador.";
+    $("#cfg-msg").className = "msg msg-ok";
+  });
+
+  async function callApi(action, extraParams) {
+    const cfg = getCfg();
+    if (!cfg.url) throw new Error("Falta configurar la URL del Apps Script.");
+    const url = new URL(cfg.url);
+    url.searchParams.set("action", action);
+    if (extraParams) {
+      Object.entries(extraParams).forEach(([k, v]) => url.searchParams.set(k, v));
+    }
+    const res = await fetch(url.toString());
+    if (!res.ok) throw new Error("Error de red: " + res.status);
+    return res.json();
+  }
+
+  async function generarCodigo({ tipo, estado, nota, code }) {
+    const cfg = getCfg();
+    const params = { adminKey: cfg.key, tipo, estado, nota: nota || "" };
+    if (code) params.code = code;
+    return callApi("add", params);
+  }
+
+  $("#btn-generar").addEventListener("click", async () => {
+    const msg = $("#generar-msg");
+    msg.textContent = "Generando...";
+    msg.className = "msg";
+    try {
+      const tipo = $("#new-tipo").value.trim() || "pagado";
+      const activar = $("#new-activar").checked;
+      const nota = $("#new-nota").value.trim();
+      const data = await generarCodigo({ tipo, estado: activar ? "activo" : "inactivo", nota });
+      if (data.ok) {
+        msg.textContent = `Codigo generado: ${data.code} (${data.estado})`;
+        msg.className = "msg msg-ok";
+        $("#new-nota").value = "";
+        cargarLista();
+      } else {
+        msg.textContent = "Error: " + (data.reason || "desconocido");
+        msg.className = "msg msg-error";
+      }
+    } catch (err) {
+      msg.textContent = "Error: " + err.message;
+      msg.className = "msg msg-error";
+    }
+  });
+
+  $("#btn-lote").addEventListener("click", async () => {
+    const msg = $("#lote-msg");
+    if (!confirm("Esto va a generar 50 codigos nuevos marcados como gratis/activo. Usalo solo una vez. Continuar?")) {
+      return;
+    }
+    msg.textContent = "Generando 50 codigos, esto puede tardar un momento...";
+    msg.className = "msg";
+    let ok = 0;
+    let fail = 0;
+    for (let i = 0; i < 50; i++) {
+      try {
+        const data = await generarCodigo({ tipo: "gratis", estado: "activo", nota: "Lote inicial gratis" });
+        if (data.ok) ok++;
+        else fail++;
+      } catch (err) {
+        fail++;
+      }
+      msg.textContent = `Generando... ${i + 1}/50 (ok: ${ok}, fallidos: ${fail})`;
+    }
+    msg.textContent = `Listo. Codigos creados: ${ok}. Fallidos: ${fail}.`;
+    msg.className = "msg msg-ok";
+    cargarLista();
+  });
+
+  function badge(estado) {
+    const cls = String(estado).toLowerCase() === "activo" ? "badge-activo" : "badge-inactivo";
+    return `<span class="badge ${cls}">${estado}</span>`;
+  }
+
+  function formatFecha(value) {
+    if (!value) return "-";
+    const d = new Date(value);
+    if (isNaN(d.getTime())) return String(value);
+    return d.toLocaleDateString("es-ES") + " " + d.toLocaleTimeString("es-ES", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  async function cargarLista() {
+    const msg = $("#lista-msg");
+    msg.textContent = "Cargando...";
+    msg.className = "msg";
+    try {
+      const cfg = getCfg();
+      const data = await callApi("list", { adminKey: cfg.key });
+      if (!data.ok) {
+        msg.textContent = "Error: " + (data.reason || "desconocido");
+        msg.className = "msg msg-error";
+        return;
+      }
+      renderTabla(data.rows);
+      msg.textContent = `${data.rows.length} codigo(s) cargado(s).`;
+      msg.className = "msg msg-ok";
+    } catch (err) {
+      msg.textContent = "Error: " + err.message;
+      msg.className = "msg msg-error";
+    }
+  }
+
+  function renderTabla(rows) {
+    const tbody = $("#tabla-body");
+    tbody.innerHTML = "";
+    rows.forEach((row) => {
+      const tr = document.createElement("tr");
+      const estaActivo = String(row.estado).toLowerCase() === "activo";
+      tr.innerHTML = `
+        <td>${row.codigo}</td>
+        <td>${row.tipo || "-"}</td>
+        <td>${badge(row.estado)}</td>
+        <td>${row.deviceId || "-"}</td>
+        <td>${formatFecha(row.creado)}</td>
+        <td>${row.nota || "-"}</td>
+        <td class="actions-cell"></td>
+      `;
+      const actionsCell = tr.querySelector(".actions-cell");
+
+      const toggleBtn = document.createElement("button");
+      toggleBtn.className = "btn " + (estaActivo ? "btn-danger" : "btn");
+      toggleBtn.textContent = estaActivo ? "Desactivar" : "Activar";
+      toggleBtn.addEventListener("click", () => toggleActivo(row.codigo, !estaActivo));
+      actionsCell.appendChild(toggleBtn);
+
+      const copyBtn = document.createElement("button");
+      copyBtn.className = "btn btn-secondary";
+      copyBtn.textContent = "Copiar";
+      copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(String(row.codigo));
+        copyBtn.textContent = "Copiado!";
+        setTimeout(() => (copyBtn.textContent = "Copiar"), 1200);
+      });
+      actionsCell.appendChild(copyBtn);
+
+      tbody.appendChild(tr);
+    });
+  }
+
+  async function toggleActivo(code, active) {
+    const cfg = getCfg();
+    try {
+      const data = await callApi("setActive", { adminKey: cfg.key, code, active: String(active) });
+      if (data.ok) {
+        cargarLista();
+      } else {
+        alert("Error: " + (data.reason || "desconocido"));
+      }
+    } catch (err) {
+      alert("Error: " + err.message);
+    }
+  }
+
+  $("#btn-refrescar").addEventListener("click", cargarLista);
+
+  loadCfgIntoForm();
+})();
+</script>
+</body>
+</html>
