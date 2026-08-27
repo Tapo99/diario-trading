@@ -926,3 +926,62 @@ button {
     width: 36px;
   }
 }
+
+/* ---------- Vista previa de impresion (PDF) ---------- */
+
+#print-preview-overlay {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  color: #111;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.print-preview-toolbar {
+  position: sticky;
+  top: 0;
+  background: #f1f5f9;
+  padding: 10px 16px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #ddd;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14px;
+  color: #111;
+  z-index: 1;
+}
+
+.print-preview-toolbar .btn-secondary {
+  background: #fff;
+  color: #111;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  padding: 6px 14px;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.print-preview-content {
+  padding: 24px;
+}
+
+@media print {
+  body > *:not(#print-preview-overlay) {
+    display: none !important;
+  }
+
+  #print-preview-overlay {
+    position: static;
+    overflow: visible;
+  }
+
+  .print-preview-toolbar {
+    display: none !important;
+  }
+
+  .print-preview-content {
+    padding: 0;
+  }
+}

@@ -1,6 +1,7 @@
 // ============================================================
 // Pestana "Diario": listado agrupado por fecha, vista de detalle,
-// exportar PDF por trade, y respaldo por rango de fechas (JSON).
+// exportar PDF por trade individual, y reporte PDF por rango de fechas
+// (grafica de barras por dia + resumen + detalle agrupado por dia).
 // ============================================================
 (function () {
   const QUESTION_LABELS = [
@@ -99,7 +100,7 @@
 
     const backupBtn = document.createElement("button");
     backupBtn.className = "btn btn-secondary";
-    backupBtn.textContent = "Respaldo por fechas";
+    backupBtn.textContent = "Exportar PDF por fechas";
     backupBtn.addEventListener("click", openBackupDialog);
     toolbar.appendChild(backupBtn);
 
@@ -339,39 +340,49 @@
       ? `<div style="margin:8px 0 16px;font-size:16px;font-weight:bold;">$${Number(trade.monto).toFixed(2)}</div>`
       : "";
 
-    const html = `<!doctype html>
-<html lang="es">
-<head>
-<meta charset="utf-8">
-<title>Trade ${trade.fecha}</title>
+    const html = `
 <style>
-  body { font-family: Arial, Helvetica, sans-serif; color: #111; padding: 32px; max-width: 700px; margin: 0 auto; }
-  h1 { font-size: 20px; margin-bottom: 4px; }
-  .meta { color: #555; margin-bottom: 24px; }
-  .resultado { display:inline-block; padding:4px 12px; border-radius:999px; font-weight:bold; font-size:12px; margin-bottom:16px; }
-  @media print { body { padding: 0; } }
+  .print-doc { font-family: Arial, Helvetica, sans-serif; color: #111; }
+  .print-doc h1 { font-size: 20px; margin-bottom: 4px; }
+  .print-doc .meta { color: #555; margin-bottom: 24px; }
+  .print-doc .resultado { display:inline-block; padding:4px 12px; border-radius:999px; font-weight:bold; font-size:12px; margin-bottom:16px; }
 </style>
-</head>
-<body>
+<div class="print-doc">
   <h1>Diario de Trading</h1>
   <div class="meta">${formatDateHeader(trade.fecha)}</div>
   <div class="resultado" style="background:${resultadoColor(trade.resultado)};color:#fff;">${resultadoLabel}</div>
   ${montoHtml}
   ${imgHtml}
   ${questionsHtml}
-</body>
-</html>`;
+</div>`;
 
-    const win = window.open("", "_blank");
-    if (!win) {
-      alert("Tu navegador bloqueo la ventana de impresion. Permite ventanas emergentes para exportar el PDF.");
-      return;
-    }
-    win.document.open();
-    win.document.write(html);
-    win.document.close();
-    win.focus();
-    setTimeout(() => win.print(), 300);
+    showPrintPreview(html);
+  }
+
+  function showPrintPreview(contentHtml) {
+    const existing = document.getElementById("print-preview-overlay");
+    if (existing) existing.remove();
+
+    const overlay = document.createElement("div");
+    overlay.id = "print-preview-overlay";
+    overlay.innerHTML = `
+      <div class="print-preview-toolbar">
+        <span>Vista previa de impresion</span>
+        <button type="button" class="btn btn-secondary" id="print-preview-close">Cerrar</button>
+      </div>
+      <div class="print-preview-content">${contentHtml}</div>
+    `;
+    document.body.appendChild(overlay);
+
+    const cleanup = () => {
+      overlay.remove();
+      window.removeEventListener("afterprint", cleanup);
+    };
+
+    overlay.querySelector("#print-preview-close").addEventListener("click", cleanup);
+    window.addEventListener("afterprint", cleanup);
+
+    setTimeout(() => window.print(), 200);
   }
 
   function resultadoColor(resultado) {
@@ -395,7 +406,7 @@
     panel.className = "detail-panel backup-panel";
 
     const h = document.createElement("h2");
-    h.textContent = "Respaldo por fechas";
+    h.textContent = "Exportar PDF por fechas";
     panel.appendChild(h);
 
     const fromLabel = document.createElement("label");
@@ -431,7 +442,7 @@
 
     const confirmBtn = document.createElement("button");
     confirmBtn.className = "btn btn-primary";
-    confirmBtn.textContent = "Descargar";
+    confirmBtn.textContent = "Generar PDF";
     confirmBtn.addEventListener("click", async () => {
       msg.textContent = "";
       if (!fromInput.value || !toInput.value) {
@@ -442,7 +453,8 @@
         msg.textContent = "La fecha 'Desde' no puede ser posterior a 'Hasta'.";
         return;
       }
-      await downloadBackup(fromInput.value, toInput.value, msg);
+      const success = await exportRangePdf(fromInput.value, toInput.value, msg);
+      if (success) overlay.remove();
     });
 
     actions.appendChild(cancelBtn);
@@ -456,50 +468,164 @@
     document.body.appendChild(overlay);
   }
 
-  async function downloadBackup(from, to, msgEl) {
+  function formatDayShort(isoDate) {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString("es-ES", { day: "numeric", month: "short" });
+  }
+
+  function formatMoney(value) {
+    const sign = value < 0 ? "-" : "";
+    return sign + "$" + Math.abs(value).toFixed(2);
+  }
+
+  function buildDailyBarChartSvg(dailyTotals) {
+    const days = Array.from(dailyTotals.keys()).sort();
+    const width = 700;
+    const height = 300;
+    const zeroY = 150;
+    const maxHalf = 110;
+    const topMargin = 20;
+    const labelAreaY = zeroY + maxHalf + 20;
+
+    const maxAbs = Math.max(1, ...days.map((d) => Math.abs(dailyTotals.get(d).neto)));
+    const slot = width / days.length;
+    const barWidth = Math.min(slot * 0.55, 46);
+
+    const bars = days
+      .map((day, i) => {
+        const neto = dailyTotals.get(day).neto;
+        const x = i * slot + (slot - barWidth) / 2;
+        const barHeight = (Math.abs(neto) / maxAbs) * maxHalf;
+        const y = neto >= 0 ? zeroY - barHeight : zeroY;
+        const color = neto > 0 ? "#16a34a" : neto < 0 ? "#dc2626" : "#94a3b8";
+        const amountY = neto >= 0 ? y - 6 : y + barHeight + 14;
+        return `
+          <rect x="${x}" y="${y}" width="${barWidth}" height="${Math.max(barHeight, 1)}" fill="${color}" rx="3" />
+          <text x="${x + barWidth / 2}" y="${amountY}" font-size="11" text-anchor="middle" fill="#111">${formatMoney(neto)}</text>
+          <text x="${x + barWidth / 2}" y="${labelAreaY}" font-size="11" text-anchor="middle" fill="#555" transform="rotate(-40 ${x + barWidth / 2} ${labelAreaY})">${formatDayShort(day)}</text>
+        `;
+      })
+      .join("");
+
+    return `<svg viewBox="0 0 ${width} ${height}" style="width:100%;max-width:700px;display:block;margin:0 auto;">
+      <line x1="0" y1="${topMargin}" x2="0" y2="${zeroY + maxHalf}" stroke="#ddd" />
+      <line x1="0" y1="${zeroY}" x2="${width}" y2="${zeroY}" stroke="#999" stroke-width="1" />
+      ${bars}
+    </svg>`;
+  }
+
+  async function exportRangePdf(from, to, msgEl) {
     const trades = await window.DiarioDB.getAllTrades();
     const filtered = trades.filter((t) => t.fecha >= from && t.fecha <= to);
 
     if (filtered.length === 0) {
       msgEl.textContent = "No hay trades guardados en ese rango de fechas.";
-      return;
+      return false;
     }
 
-    filtered.sort((a, b) => (a.fecha === b.fecha ? a.createdAt - b.createdAt : a.fecha < b.fecha ? -1 : 1));
-
-    const exportable = [];
+    const byDate = new Map();
     for (const t of filtered) {
-      let imagenDataUrl = null;
-      if (t.imagenBlob) {
-        imagenDataUrl = await blobToDataUrl(t.imagenBlob);
+      if (!byDate.has(t.fecha)) byDate.set(t.fecha, []);
+      byDate.get(t.fecha).push(t);
+    }
+    for (const list of byDate.values()) {
+      list.sort((a, b) => a.createdAt - b.createdAt);
+    }
+    const sortedDays = Array.from(byDate.keys()).sort();
+
+    let totalGanancias = 0;
+    let totalPerdidas = 0;
+    let winCount = 0;
+    const dailyTotals = new Map();
+
+    for (const day of sortedDays) {
+      let dayGanancias = 0;
+      let dayPerdidas = 0;
+      for (const t of byDate.get(day)) {
+        const monto = Number(t.monto) || 0;
+        if (t.resultado === "ganancia") {
+          dayGanancias += monto;
+          totalGanancias += monto;
+          winCount += 1;
+        } else if (t.resultado === "perdida") {
+          dayPerdidas += monto;
+          totalPerdidas += monto;
+        }
       }
-      exportable.push({
-        id: t.id,
-        fecha: t.fecha,
-        createdAt: t.createdAt,
-        resultado: t.resultado,
-        monto: t.monto || 0,
-        respuestas: t.respuestas,
-        imagen: imagenDataUrl,
-      });
+      dailyTotals.set(day, { ganancias: dayGanancias, perdidas: dayPerdidas, neto: dayGanancias - dayPerdidas });
     }
 
-    const payload = {
-      generadoEl: new Date().toISOString(),
-      rango: { desde: from, hasta: to },
-      trades: exportable,
-    };
+    const totalTrades = filtered.length;
+    const winRate = Math.round((winCount / totalTrades) * 100);
+    const netoGeneral = totalGanancias - totalPerdidas;
 
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `diario-trading-respaldo-${from}_a_${to}.json`;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    URL.revokeObjectURL(url);
-    msgEl.textContent = `Listo: ${filtered.length} trade(s) exportado(s).`;
+    const chartSvg = buildDailyBarChartSvg(dailyTotals);
+
+    const daysHtml = sortedDays
+      .map((day) => {
+        const dayData = dailyTotals.get(day);
+        const tradesHtml = byDate
+          .get(day)
+          .map((t) => {
+            const excerpt = (t.respuestas && t.respuestas.configuracion) || "";
+            const excerptShort = excerpt.length > 90 ? excerpt.slice(0, 90) + "..." : excerpt;
+            const label = RESULTADO_LABELS[t.resultado] || "Sin resultado";
+            const color = resultadoColor(t.resultado);
+            return `<tr>
+              <td style="padding:6px 8px;color:#555;white-space:nowrap;">${formatTime(t.createdAt)}</td>
+              <td style="padding:6px 8px;"><span style="background:${color};color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;">${label}</span></td>
+              <td style="padding:6px 8px;text-align:right;font-weight:bold;white-space:nowrap;">${t.monto ? formatMoney(t.resultado === "perdida" ? -t.monto : Number(t.monto)) : "-"}</td>
+              <td style="padding:6px 8px;">${escapeHtml(excerptShort)}</td>
+            </tr>`;
+          })
+          .join("");
+
+        return `
+          <div style="margin-top:22px;break-inside:avoid;">
+            <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0f766e;padding-bottom:4px;margin-bottom:6px;">
+              <h3 style="margin:0;font-size:15px;">${formatDateHeader(day)}</h3>
+              <span style="font-size:13px;color:${dayData.neto >= 0 ? "#16a34a" : "#dc2626"};font-weight:bold;">Neto del dia: ${formatMoney(dayData.neto)}</span>
+            </div>
+            <table style="width:100%;border-collapse:collapse;font-size:12px;">
+              <tbody>${tradesHtml}</tbody>
+            </table>
+          </div>
+        `;
+      })
+      .join("");
+
+    const html = `
+<style>
+  .print-doc { font-family: Arial, Helvetica, sans-serif; color: #111; max-width: 760px; margin: 0 auto; }
+  .print-doc h1 { font-size: 20px; margin-bottom: 4px; }
+  .print-doc .meta { color: #555; margin-bottom: 20px; }
+  .print-doc .summary-row { display: flex; gap: 12px; flex-wrap: wrap; margin: 20px 0; }
+  .print-doc .summary-card { flex: 1; min-width: 120px; border: 1px solid #ddd; border-radius: 8px; padding: 10px 14px; }
+  .print-doc .summary-card span { display: block; }
+  .print-doc .summary-label { font-size: 11px; color: #777; }
+  .print-doc .summary-value { font-size: 18px; font-weight: bold; margin-top: 2px; }
+</style>
+<div class="print-doc">
+  <h1>Diario de Trading — Reporte por fechas</h1>
+  <div class="meta">${formatDateHeader(from)} al ${formatDateHeader(to)}</div>
+
+  <div class="summary-row">
+    <div class="summary-card"><span class="summary-label">Ganancias</span><span class="summary-value" style="color:#16a34a;">${formatMoney(totalGanancias)}</span></div>
+    <div class="summary-card"><span class="summary-label">Perdidas</span><span class="summary-value" style="color:#dc2626;">${formatMoney(totalPerdidas)}</span></div>
+    <div class="summary-card"><span class="summary-label">Neto</span><span class="summary-value" style="color:${netoGeneral >= 0 ? "#16a34a" : "#dc2626"};">${formatMoney(netoGeneral)}</span></div>
+    <div class="summary-card"><span class="summary-label">% Aciertos</span><span class="summary-value">${winRate}%</span></div>
+    <div class="summary-card"><span class="summary-label">Trades</span><span class="summary-value">${totalTrades}</span></div>
+  </div>
+
+  ${chartSvg}
+
+  ${daysHtml}
+</div>`;
+
+    showPrintPreview(html);
+    msgEl.textContent = `Listo: ${totalTrades} trade(s) en ${sortedDays.length} dia(s).`;
+    return true;
   }
 
   function init() {
