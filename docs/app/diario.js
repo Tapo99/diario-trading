@@ -434,6 +434,16 @@
     h.textContent = "Exportar PDF por fechas";
     panel.appendChild(h);
 
+    const monthLabel = document.createElement("label");
+    monthLabel.className = "field-label";
+    monthLabel.textContent = "O elige un mes completo";
+    const monthInput = document.createElement("input");
+    monthInput.type = "month";
+    monthInput.className = "field-input";
+
+    panel.appendChild(monthLabel);
+    panel.appendChild(monthInput);
+
     const fromLabel = document.createElement("label");
     fromLabel.className = "field-label";
     fromLabel.textContent = "Desde";
@@ -447,6 +457,15 @@
     const toInput = document.createElement("input");
     toInput.type = "date";
     toInput.className = "field-input";
+
+    monthInput.addEventListener("input", () => {
+      if (!monthInput.value) return;
+      const [year, month] = monthInput.value.split("-").map(Number);
+      const pad = (n) => String(n).padStart(2, "0");
+      const lastDayNum = new Date(year, month, 0).getDate();
+      fromInput.value = `${year}-${pad(month)}-01`;
+      toInput.value = `${year}-${pad(month)}-${pad(lastDayNum)}`;
+    });
 
     panel.appendChild(fromLabel);
     panel.appendChild(fromInput);
