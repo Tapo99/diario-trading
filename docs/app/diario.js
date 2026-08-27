@@ -323,37 +323,58 @@
     document.body.appendChild(overlay);
   }
 
-  async function exportTradePdf(trade) {
+  async function buildTradeDetailHtml(trade, { showDateAsHeading } = {}) {
     let imgHtml = "";
     if (trade.imagenBlob) {
       const dataUrl = await blobToDataUrl(trade.imagenBlob);
       imgHtml = `<img src="${dataUrl}" style="max-width:100%;margin:16px 0;border-radius:8px;" />`;
     }
 
+    const resultadoLabel = RESULTADO_LABELS[trade.resultado] || "Sin resultado";
+    const color = resultadoColor(trade.resultado);
+    const montoText = trade.monto ? "$" + Number(trade.monto).toFixed(2) : "";
+    const badgeHtml = `<span style="display:inline-block;background:${color};color:#fff;padding:3px 10px;border-radius:999px;font-size:11px;font-weight:bold;">${resultadoLabel}</span>`;
+    const montoHtml = montoText
+      ? `<div style="margin:8px 0 16px;font-size:16px;font-weight:bold;">${montoText}</div>`
+      : "";
+
     const questionsHtml = QUESTION_LABELS.map(([key, label]) => {
       const value = (trade.respuestas && trade.respuestas[key]) || "-";
-      return `<div style="margin-bottom:14px;"><h3 style="margin:0 0 4px;font-size:14px;color:#0f766e;">${label}</h3><p style="margin:0;white-space:pre-wrap;">${escapeHtml(value)}</p></div>`;
+      const inlineDetail =
+        key === "resultado"
+          ? `<div style="margin:4px 0 6px;">${badgeHtml}${montoText ? ` <span style="font-weight:bold;">${montoText}</span>` : ""}</div>`
+          : "";
+      return `<div style="margin-bottom:14px;"><h3 style="margin:0 0 4px;font-size:14px;color:#0f766e;">${label}</h3>${inlineDetail}<p style="margin:0;white-space:pre-wrap;">${escapeHtml(value)}</p></div>`;
     }).join("");
 
-    const resultadoLabel = RESULTADO_LABELS[trade.resultado] || "Sin resultado";
-    const montoHtml = trade.monto
-      ? `<div style="margin:8px 0 16px;font-size:16px;font-weight:bold;">$${Number(trade.monto).toFixed(2)}</div>`
+    const heading = showDateAsHeading
+      ? `<div class="meta">${formatDateHeader(trade.fecha)} — ${formatTime(trade.createdAt)}</div>`
       : "";
+
+    return `
+      <div class="trade-block">
+        ${heading}
+        <div style="margin-bottom:16px;">${badgeHtml}</div>
+        ${montoHtml}
+        ${imgHtml}
+        ${questionsHtml}
+      </div>
+    `;
+  }
+
+  async function exportTradePdf(trade) {
+    const tradeHtml = await buildTradeDetailHtml(trade, { showDateAsHeading: true });
 
     const html = `
 <style>
   .print-doc { font-family: Arial, Helvetica, sans-serif; color: #111; }
   .print-doc h1 { font-size: 20px; margin-bottom: 4px; }
-  .print-doc .meta { color: #555; margin-bottom: 24px; }
-  .print-doc .resultado { display:inline-block; padding:4px 12px; border-radius:999px; font-weight:bold; font-size:12px; margin-bottom:16px; }
+  .print-doc .meta { color: #555; margin-bottom: 8px; }
+  .print-doc .trade-block { break-inside: avoid; }
 </style>
 <div class="print-doc">
   <h1>Diario de Trading</h1>
-  <div class="meta">${formatDateHeader(trade.fecha)}</div>
-  <div class="resultado" style="background:${resultadoColor(trade.resultado)};color:#fff;">${resultadoLabel}</div>
-  ${montoHtml}
-  ${imgHtml}
-  ${questionsHtml}
+  ${tradeHtml}
 </div>`;
 
     showPrintPreview(html);
@@ -562,38 +583,24 @@
 
     const chartSvg = buildDailyBarChartSvg(dailyTotals);
 
-    const daysHtml = sortedDays
-      .map((day) => {
-        const dayData = dailyTotals.get(day);
-        const tradesHtml = byDate
-          .get(day)
-          .map((t) => {
-            const excerpt = (t.respuestas && t.respuestas.configuracion) || "";
-            const excerptShort = excerpt.length > 90 ? excerpt.slice(0, 90) + "..." : excerpt;
-            const label = RESULTADO_LABELS[t.resultado] || "Sin resultado";
-            const color = resultadoColor(t.resultado);
-            return `<tr>
-              <td style="padding:6px 8px;color:#555;white-space:nowrap;">${formatTime(t.createdAt)}</td>
-              <td style="padding:6px 8px;"><span style="background:${color};color:#fff;padding:2px 8px;border-radius:999px;font-size:11px;">${label}</span></td>
-              <td style="padding:6px 8px;text-align:right;font-weight:bold;white-space:nowrap;">${t.monto ? formatMoney(t.resultado === "perdida" ? -t.monto : Number(t.monto)) : "-"}</td>
-              <td style="padding:6px 8px;">${escapeHtml(excerptShort)}</td>
-            </tr>`;
-          })
-          .join("");
-
-        return `
-          <div style="margin-top:22px;break-inside:avoid;">
-            <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0f766e;padding-bottom:4px;margin-bottom:6px;">
-              <h3 style="margin:0;font-size:15px;">${formatDateHeader(day)}</h3>
-              <span style="font-size:13px;color:${dayData.neto >= 0 ? "#16a34a" : "#dc2626"};font-weight:bold;">Neto del dia: ${formatMoney(dayData.neto)}</span>
-            </div>
-            <table style="width:100%;border-collapse:collapse;font-size:12px;">
-              <tbody>${tradesHtml}</tbody>
-            </table>
+    const dayBlocks = [];
+    for (const day of sortedDays) {
+      const dayData = dailyTotals.get(day);
+      const tradeBlocks = [];
+      for (const t of byDate.get(day)) {
+        tradeBlocks.push(await buildTradeDetailHtml(t, { showDateAsHeading: false }));
+      }
+      dayBlocks.push(`
+        <div style="margin-top:28px;">
+          <div style="display:flex;justify-content:space-between;align-items:baseline;border-bottom:2px solid #0f766e;padding-bottom:4px;margin-bottom:14px;">
+            <h2 style="margin:0;font-size:16px;">${formatDateHeader(day)}</h2>
+            <span style="font-size:13px;color:${dayData.neto >= 0 ? "#16a34a" : "#dc2626"};font-weight:bold;">Neto del dia: ${formatMoney(dayData.neto)}</span>
           </div>
-        `;
-      })
-      .join("");
+          ${tradeBlocks.join('<hr style="border:none;border-top:1px solid #eee;margin:20px 0;" />')}
+        </div>
+      `);
+    }
+    const daysHtml = dayBlocks.join("");
 
     const html = `
 <style>
@@ -605,6 +612,7 @@
   .print-doc .summary-card span { display: block; }
   .print-doc .summary-label { font-size: 11px; color: #777; }
   .print-doc .summary-value { font-size: 18px; font-weight: bold; margin-top: 2px; }
+  .print-doc .trade-block { break-inside: avoid; margin-bottom: 12px; }
 </style>
 <div class="print-doc">
   <h1>Diario de Trading — Reporte por fechas</h1>
