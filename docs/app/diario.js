@@ -5,14 +5,14 @@
 // ============================================================
 (function () {
   const QUESTION_LABELS = [
-    ["configuracion", "Configuracion del Trade"],
-    ["justificacion", "Justificacion"],
-    ["emociones", "Emociones y Psicologia"],
-    ["riesgo", "Gestion de Riesgo"],
-    ["resultado", "Resultado y Reflexion"],
-    ["lecciones", "Lecciones Aprendidas"],
-    ["condiciones", "Condiciones del Mercado"],
-    ["planes", "Planes Futuros"],
+    ["configuracion", "Configuracion del Trade", "Describe la estrategia y la configuracion que utilizaste para este trade."],
+    ["justificacion", "Justificacion", "Cual fue la razon principal por la que entraste en este trade?"],
+    ["emociones", "Emociones y Psicologia", "Como te sentiste antes, durante y despues del trade?"],
+    ["riesgo", "Gestion de Riesgo", "Como determinaste el tamano de tu posicion y los niveles de riesgo?"],
+    ["resultado", "Resultado y Reflexion", "El trade fue una ganancia, una perdida o un punto de equilibrio? Que aprendiste de este trade?"],
+    ["lecciones", "Lecciones Aprendidas", "Que aprendizajes puedes obtener de este trade?"],
+    ["condiciones", "Condiciones del Mercado", "Hubo condiciones del mercado o noticias que afectaran el trade?"],
+    ["planes", "Planes Futuros", "Como influira este trade en tus decisiones futuras?"],
   ];
 
   const RESULTADO_LABELS = {
@@ -306,14 +306,18 @@
       panel.appendChild(img);
     }
 
-    for (const [key, label] of QUESTION_LABELS) {
+    for (const [key, label, pregunta] of QUESTION_LABELS) {
       const block = document.createElement("div");
       block.className = "detail-block";
       const h3 = document.createElement("h4");
       h3.textContent = label;
+      const q = document.createElement("p");
+      q.className = "detail-block-question";
+      q.textContent = pregunta;
       const p = document.createElement("p");
       p.textContent = (trade.respuestas && trade.respuestas[key]) || "-";
       block.appendChild(h3);
+      block.appendChild(q);
       block.appendChild(p);
       panel.appendChild(block);
     }
@@ -340,13 +344,13 @@
       ? `<div style="margin:8px 0 16px;font-size:16px;font-weight:bold;color:#111;">${montoText}</div>`
       : "";
 
-    const questionsHtml = QUESTION_LABELS.map(([key, label]) => {
+    const questionsHtml = QUESTION_LABELS.map(([key, label, pregunta]) => {
       const value = (trade.respuestas && trade.respuestas[key]) || "-";
       const inlineDetail =
         key === "resultado"
           ? `<div style="margin:4px 0 6px;">${badgeHtml}${montoText ? ` <span style="font-weight:bold;color:#111;">${montoText}</span>` : ""}</div>`
           : "";
-      return `<div style="margin-bottom:14px;"><h3 style="margin:0 0 4px;font-size:14px;color:#0f766e;">${label}</h3>${inlineDetail}<p style="margin:0;white-space:pre-wrap;color:#111;">${escapeHtml(value)}</p></div>`;
+      return `<div style="margin-bottom:14px;"><h3 style="margin:0 0 4px;font-size:14px;color:#0f766e;">${label}</h3><p style="margin:0 0 6px;font-size:12px;color:#666;">${escapeHtml(pregunta)}</p>${inlineDetail}<p style="margin:0;white-space:pre-wrap;color:#111;">${escapeHtml(value)}</p></div>`;
     }).join("");
 
     const heading = showDateAsHeading

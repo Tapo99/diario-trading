@@ -5,7 +5,7 @@
 // normal), siempre se usa la version mas nueva de inmediato en
 // vez de esperar a que el service worker viejo se actualice solo.
 // ============================================================
-const CACHE_NAME = "diario-trading-v22";
+const CACHE_NAME = "diario-trading-v23";
 const APP_SHELL = [
   "./",
   "./index.html",
