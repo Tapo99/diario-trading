@@ -20,6 +20,7 @@ body {
   background: var(--bg);
   color: var(--text-main);
   min-height: 100vh;
+  overflow-x: hidden;
 }
 
 button {
@@ -241,6 +242,8 @@ button {
   .app-header {
     justify-content: space-between;
     position: relative;
+    overflow: visible;
+    flex-wrap: wrap;
   }
 
   .app-menu-toggle {
