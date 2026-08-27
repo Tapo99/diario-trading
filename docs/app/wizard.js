@@ -68,6 +68,7 @@
       imagenPreviewUrl: "",
       respuestas: {},
       resultado: "",
+      monto: "",
     };
   }
 
@@ -233,6 +234,8 @@
     wrap.appendChild(p);
 
     let chipRow = null;
+    let montoInput = null;
+    let montoLabel = null;
     if (question.conSelector) {
       chipRow = document.createElement("div");
       chipRow.className = "chip-row";
@@ -246,11 +249,41 @@
           state.resultado = val;
           chipRow.querySelectorAll(".chip").forEach((c) => c.classList.remove("chip-selected"));
           chip.classList.add("chip-selected");
+          updateMontoLabel();
           updateNextDisabled();
         });
         chipRow.appendChild(chip);
       });
       wrap.appendChild(chipRow);
+
+      montoLabel = document.createElement("label");
+      montoLabel.className = "field-label";
+      wrap.appendChild(montoLabel);
+
+      montoInput = document.createElement("input");
+      montoInput.type = "number";
+      montoInput.step = "0.01";
+      montoInput.min = "0";
+      montoInput.className = "field-input";
+      montoInput.placeholder = "0.00";
+      montoInput.value = state.monto;
+      wrap.appendChild(montoInput);
+
+      montoInput.addEventListener("input", () => {
+        state.monto = montoInput.value;
+        updateNextDisabled();
+      });
+
+      function updateMontoLabel() {
+        if (state.resultado === "perdida") {
+          montoLabel.textContent = "Cuanto perdiste ($, obligatorio)";
+        } else if (state.resultado === "equilibrio") {
+          montoLabel.textContent = "Monto (opcional, puede quedar en 0)";
+        } else {
+          montoLabel.textContent = "Cuanto ganaste ($, obligatorio)";
+        }
+      }
+      updateMontoLabel();
     }
 
     const textarea = document.createElement("textarea");
@@ -267,7 +300,11 @@
 
     function isValid() {
       const textOk = textarea.value.trim().length > 0;
-      if (question.conSelector) return textOk && !!state.resultado;
+      if (question.conSelector) {
+        const montoRequerido = state.resultado === "ganancia" || state.resultado === "perdida";
+        const montoOk = !montoRequerido || (state.monto !== "" && Number(state.monto) >= 0);
+        return textOk && !!state.resultado && montoOk;
+      }
       return textOk;
     }
 
@@ -307,6 +344,7 @@
       ["Imagen adjunta", state.imagenBlob ? "Si" : "No"],
       ["Preguntas respondidas", `${answeredCount} de ${QUESTIONS.length}`],
       ["Resultado", RESULTADO_LABELS[state.resultado] || "-"],
+      ["Monto", state.monto !== "" ? "$" + Number(state.monto).toFixed(2) : "-"],
     ];
 
     items.forEach(([label, value]) => {
@@ -335,6 +373,7 @@
   }
 
   async function saveTrade() {
+    const monto = state.monto !== "" ? Number(state.monto) : 0;
     if (editingTradeId) {
       const trade = {
         id: editingTradeId,
@@ -344,6 +383,7 @@
         imagenTipo: state.imagenTipo,
         respuestas: { ...state.respuestas },
         resultado: state.resultado,
+        monto,
       };
       await window.DiarioDB.updateTrade(trade);
     } else {
@@ -355,6 +395,7 @@
         imagenTipo: state.imagenTipo,
         respuestas: { ...state.respuestas },
         resultado: state.resultado,
+        monto,
       };
       await window.DiarioDB.addTrade(trade);
     }
@@ -381,6 +422,7 @@
       imagenPreviewUrl: trade.imagenBlob ? URL.createObjectURL(trade.imagenBlob) : "",
       respuestas: { ...trade.respuestas },
       resultado: trade.resultado,
+      monto: trade.monto != null ? String(trade.monto) : "",
     };
     render();
     window.dispatchEvent(new CustomEvent("app:navigate", { detail: { tab: "agregar" } }));

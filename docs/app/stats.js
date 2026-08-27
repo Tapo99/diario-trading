@@ -62,15 +62,22 @@
     }
 
     const counts = { ganancia: 0, perdida: 0, equilibrio: 0 };
+    let totalGanancias = 0;
+    let totalPerdidas = 0;
     filtered.forEach((t) => {
       const key = t.resultado in counts ? t.resultado : "equilibrio";
       counts[key] += 1;
+      const monto = Number(t.monto) || 0;
+      if (t.resultado === "ganancia") totalGanancias += monto;
+      if (t.resultado === "perdida") totalPerdidas += monto;
     });
     const total = filtered.length;
     const winRate = Math.round((counts.ganancia / total) * 100);
 
     root.appendChild(renderDonut(counts, total, winRate));
     root.appendChild(renderLegend(counts, total));
+    root.appendChild(renderMoneyPanel(totalGanancias, totalPerdidas));
+    root.appendChild(renderBestWorst(filtered));
   }
 
   function renderFilterBar() {
@@ -187,6 +194,109 @@
     wrap.appendChild(totalRow);
 
     return wrap;
+  }
+
+  function formatMoney(value) {
+    const sign = value < 0 ? "-" : "";
+    return sign + "$" + Math.abs(value).toFixed(2);
+  }
+
+  function renderMoneyPanel(totalGanancias, totalPerdidas) {
+    const neto = totalGanancias - totalPerdidas;
+    const wrap = document.createElement("div");
+    wrap.className = "stats-money-panel";
+
+    const items = [
+      ["Ganancias", totalGanancias, "positivo"],
+      ["Perdidas", totalPerdidas, "negativo"],
+      ["Neto (ganancias - perdidas)", neto, neto >= 0 ? "positivo" : "negativo"],
+    ];
+
+    items.forEach(([label, value, cls]) => {
+      const card = document.createElement("div");
+      card.className = "stats-money-card";
+      const l = document.createElement("span");
+      l.className = "stats-money-label";
+      l.textContent = label;
+      const v = document.createElement("span");
+      v.className = "stats-money-value stats-money-" + cls;
+      v.textContent = formatMoney(value);
+      card.appendChild(l);
+      card.appendChild(v);
+      wrap.appendChild(card);
+    });
+
+    return wrap;
+  }
+
+  function renderBestWorst(filtered) {
+    const wrap = document.createElement("div");
+    wrap.className = "stats-bestworst";
+
+    const mejores = filtered
+      .filter((t) => t.resultado === "ganancia" && Number(t.monto) > 0)
+      .sort((a, b) => Number(b.monto) - Number(a.monto))
+      .slice(0, 3);
+
+    const peores = filtered
+      .filter((t) => t.resultado === "perdida" && Number(t.monto) > 0)
+      .sort((a, b) => Number(b.monto) - Number(a.monto))
+      .slice(0, 3);
+
+    wrap.appendChild(renderRankingBlock("Los 3 mejores trades", mejores, "positivo"));
+    wrap.appendChild(renderRankingBlock("Los 3 peores trades", peores, "negativo"));
+
+    return wrap;
+  }
+
+  function renderRankingBlock(title, trades, cls) {
+    const block = document.createElement("div");
+    block.className = "stats-ranking-block";
+
+    const h = document.createElement("h3");
+    h.textContent = title;
+    block.appendChild(h);
+
+    if (trades.length === 0) {
+      const empty = document.createElement("p");
+      empty.className = "stats-ranking-empty";
+      empty.textContent = "Sin datos suficientes en este rango.";
+      block.appendChild(empty);
+      return block;
+    }
+
+    const list = document.createElement("ol");
+    list.className = "stats-ranking-list";
+
+    trades.forEach((t) => {
+      const li = document.createElement("li");
+      const excerpt = (t.respuestas && t.respuestas.configuracion) || "";
+      const excerptShort = excerpt.length > 60 ? excerpt.slice(0, 60) + "..." : excerpt;
+      li.innerHTML = `
+        <div class="stats-ranking-info">
+          <span class="stats-ranking-date">${formatDateHeader(t.fecha)}</span>
+          <span class="stats-ranking-excerpt">${escapeHtml(excerptShort)}</span>
+        </div>
+        <span class="stats-ranking-amount stats-money-${cls}">${formatMoney(cls === "negativo" ? -Number(t.monto) : Number(t.monto))}</span>
+      `;
+      list.appendChild(li);
+    });
+
+    block.appendChild(list);
+    return block;
+  }
+
+  function formatDateHeader(isoDate) {
+    const [y, m, d] = isoDate.split("-").map(Number);
+    const date = new Date(y, m - 1, d);
+    return date.toLocaleDateString("es-ES", { day: "numeric", month: "short", year: "numeric" });
+  }
+
+  function escapeHtml(str) {
+    return String(str)
+      .replace(/&/g, "&amp;")
+      .replace(/</g, "&lt;")
+      .replace(/>/g, "&gt;");
   }
 
   function init() {

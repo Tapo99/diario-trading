@@ -289,6 +289,13 @@
     badge.textContent = RESULTADO_LABELS[trade.resultado] || "Sin resultado";
     panel.appendChild(badge);
 
+    if (trade.monto) {
+      const monto = document.createElement("p");
+      monto.className = "detail-monto";
+      monto.textContent = "$" + Number(trade.monto).toFixed(2);
+      panel.appendChild(monto);
+    }
+
     if (trade.imagenBlob) {
       const img = document.createElement("img");
       img.className = "detail-image";
@@ -328,6 +335,9 @@
     }).join("");
 
     const resultadoLabel = RESULTADO_LABELS[trade.resultado] || "Sin resultado";
+    const montoHtml = trade.monto
+      ? `<div style="margin:8px 0 16px;font-size:16px;font-weight:bold;">$${Number(trade.monto).toFixed(2)}</div>`
+      : "";
 
     const html = `<!doctype html>
 <html lang="es">
@@ -346,6 +356,7 @@
   <h1>Diario de Trading</h1>
   <div class="meta">${formatDateHeader(trade.fecha)}</div>
   <div class="resultado" style="background:${resultadoColor(trade.resultado)};color:#fff;">${resultadoLabel}</div>
+  ${montoHtml}
   ${imgHtml}
   ${questionsHtml}
 </body>
@@ -467,6 +478,7 @@
         fecha: t.fecha,
         createdAt: t.createdAt,
         resultado: t.resultado,
+        monto: t.monto || 0,
         respuestas: t.respuestas,
         imagen: imagenDataUrl,
       });
